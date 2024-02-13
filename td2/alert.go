@@ -293,12 +293,12 @@ func notifyTg(msg *alertMsg) (err error) {
 		return
 	}
 
-	prefix := "🚨 ALERT: "
+	prefix := "⚠"
 	if msg.resolved {
-		prefix = "💜 Resolved: "
+		prefix = "✅"
 	}
 
-	mc := tgbotapi.NewMessageToChannel(msg.tgChannel, fmt.Sprintf("%s: %s - %s", msg.chain, prefix, msg.message))
+	mc := tgbotapi.NewMessageToChannel(msg.tgChannel, fmt.Sprintf("%s %s %s", prefix, msg.chain, msg.message))
 	_, err = bot.Send(mc)
 	if err != nil {
 		l("telegram send:", err)
@@ -396,7 +396,7 @@ func (c *Config) alert(chainName, message, severity string, resolved bool, id *s
 // and also updates a few prometheus stats
 // FIXME: not watching for nodes that are lagging the head block!
 func (cc *ChainConfig) watch() {
-	var missedAlarm, pctAlarm, noNodes bool
+	var missedAlarm, noNodes bool
 	inactive := "jailed"
 	nodeAlarms := make(map[string]bool)
 
@@ -490,12 +490,11 @@ func (cc *ChainConfig) watch() {
 		}
 
 		// jailed detection - only alert if it changes.
-		if cc.Alerts.AlertIfInactive && cc.lastValInfo != nil && cc.lastValInfo.Bonded != cc.valInfo.Bonded &&
-			cc.lastValInfo.Moniker == cc.valInfo.Moniker {
+		if cc.Alerts.AlertIfInactive && !cc.valInfo.Bonded {
 
 			id := cc.valInfo.Valcons + "jailed"
 			// just went inactive, figure out if it's jail or tombstone
-			if !cc.valInfo.Bonded && cc.lastValInfo.Bonded {
+			if cc.valInfo.Tombstoned || cc.valInfo.Jailed {
 				if cc.valInfo.Tombstoned {
 					// don't worry about changing it back ... lol.
 					inactive = "☠️ tombstoned 🪦"
@@ -511,7 +510,7 @@ func (cc *ChainConfig) watch() {
 				td.alert(
 					cc.name,
 					fmt.Sprintf("%s is no longer active: validator is %s", cc.valInfo.Moniker, inactive),
-					"info",
+					"warning",
 					true,
 					&id,
 				)
@@ -546,9 +545,9 @@ func (cc *ChainConfig) watch() {
 		}
 
 		// window percentage missed block alarms
-		if cc.Alerts.PercentageAlerts && !pctAlarm && 100*float64(cc.valInfo.Missed)/float64(cc.valInfo.Window) > float64(cc.Alerts.Window) {
+		if cc.Alerts.PercentageAlerts && 100*float64(cc.valInfo.Missed)/float64(cc.valInfo.Window) > float64(cc.Alerts.Window) {
 			// alert on missed block counter!
-			pctAlarm = true
+			//pctAlarm = true
 			id := cc.valInfo.Valcons + "percent"
 			td.alert(
 				cc.name,
@@ -558,9 +557,9 @@ func (cc *ChainConfig) watch() {
 				&id,
 			)
 			cc.activeAlerts = alarms.getCount(cc.name)
-		} else if cc.Alerts.PercentageAlerts && pctAlarm && 100*float64(cc.valInfo.Missed)/float64(cc.valInfo.Window) < float64(cc.Alerts.Window) {
+		} else if cc.Alerts.PercentageAlerts && 100*float64(cc.valInfo.Missed)/float64(cc.valInfo.Window) < float64(cc.Alerts.Window) {
 			// clear the alert
-			pctAlarm = false
+			//pctAlarm = false
 			id := cc.valInfo.Valcons + "percent"
 			td.alert(
 				cc.name,
