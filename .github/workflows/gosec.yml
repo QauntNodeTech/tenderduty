@@ -3,14 +3,10 @@ name: Gosec
 on:
   push:
     branches:
-      - master
-      - release/*
-      - develop
+      - main
   pull_request:
     branches:
-      - master
-      - release/v2
-      - develop
+      - main
 jobs:
   tests:
     runs-on: ubuntu-latest
