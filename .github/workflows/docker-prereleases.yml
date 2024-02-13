@@ -9,7 +9,7 @@ on:
   push:
     branches:
       #- "release/*"
-      - feature/*
+      - main/*
     # Publish semver tags as releases.
     #tags:
     #  - 'v*.*.*'
