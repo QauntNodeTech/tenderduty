@@ -396,7 +396,7 @@ func (c *Config) alert(chainName, message, severity string, resolved bool, id *s
 // and also updates a few prometheus stats
 // FIXME: not watching for nodes that are lagging the head block!
 func (cc *ChainConfig) watch() {
-	var missedAlarm, noNodes bool
+	var missedAlarm, pctAlarm, noNodes bool
 	inactive := "jailed"
 	nodeAlarms := make(map[string]bool)
 
@@ -545,9 +545,9 @@ func (cc *ChainConfig) watch() {
 		}
 
 		// window percentage missed block alarms
-		if cc.Alerts.PercentageAlerts && 100*float64(cc.valInfo.Missed)/float64(cc.valInfo.Window) > float64(cc.Alerts.Window) {
+		if cc.Alerts.PercentageAlerts && !pctAlarm && 100*float64(cc.valInfo.Missed)/float64(cc.valInfo.Window) > float64(cc.Alerts.Window) {
 			// alert on missed block counter!
-			//pctAlarm = true
+			pctAlarm = true
 			id := cc.valInfo.Valcons + "percent"
 			td.alert(
 				cc.name,
@@ -557,9 +557,9 @@ func (cc *ChainConfig) watch() {
 				&id,
 			)
 			cc.activeAlerts = alarms.getCount(cc.name)
-		} else if cc.Alerts.PercentageAlerts && 100*float64(cc.valInfo.Missed)/float64(cc.valInfo.Window) < float64(cc.Alerts.Window) {
+		} else if cc.Alerts.PercentageAlerts && pctAlarm && 100*float64(cc.valInfo.Missed)/float64(cc.valInfo.Window) < float64(cc.Alerts.Window) {
 			// clear the alert
-			//pctAlarm = false
+			pctAlarm = false
 			id := cc.valInfo.Valcons + "percent"
 			td.alert(
 				cc.name,
